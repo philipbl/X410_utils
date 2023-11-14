@@ -121,119 +121,127 @@ func sendSerialCommand(addr string, command string) (string, error) {
 
 func main() {
 	// Turn off logging
-	log.SetOutput(io.Discard)
+	// log.SetOutput(io.Discard)
 
-	app := cli.NewApp()
-	app.Name = "x410_util"
-	app.Usage = "CLI for controlling an USRP X410 device"
-	app.Flags = []cli.Flag{
-		&cli.StringFlag{
-			Name:    "addr",
-			Aliases: []string{"a"},
-			Value:   "",
-			Usage:   "Serial device address",
-		},
-		&cli.StringFlag{
-			Name:    "verbose",
-			Aliases: []string{"v"},
-			Usage:   "Turn on verbose flag",
-			Action: func(ctx *cli.Context, s string) error {
-				// Turn on logging if verbose flag gets set
-				log.SetOutput(os.Stdout)
-				return nil
+	app := &cli.App{
+		Name:  "x410_utils",
+		Usage: "CLI for controlling an USRP X410 device",
+		Flags: []cli.Flag{
+			&cli.StringFlag{
+				Name:    "addr",
+				Aliases: []string{"a"},
+				Value:   "",
+				Usage:   "Serial device address",
+			},
+			&cli.BoolFlag{
+				Name:    "verbose",
+				Aliases: []string{"v"},
+				Usage:   "Turn on verbose flag",
 			},
 		},
-	}
-	app.Commands = []*cli.Command{
-		{
-			Name:  "power-status",
-			Usage: "Check power status",
-			Action: func(c *cli.Context) error {
-				addr := c.String("addr")
-				if addr == "" {
-					var err error
-					addr, err = discoverSerialDevice()
+		Commands: []*cli.Command{
+			{
+				Name:  "power-status",
+				Usage: "Check power status",
+				Action: func(c *cli.Context) error {
+					addr := c.String("addr")
+					verbose := c.Bool("verbose")
+
+					if !verbose {
+						log.SetOutput(io.Discard)
+					}
+
+					if addr == "" {
+						var err error
+						addr, err = discoverSerialDevice()
+						if err != nil {
+							return err
+						}
+					}
+
+					status, err := checkPowerStatus(addr)
 					if err != nil {
 						return err
 					}
-				}
 
-				status, err := checkPowerStatus(addr)
-				if err != nil {
-					return err
-				}
-
-				if status == ON {
-					fmt.Println("on")
-				} else if status == OFF {
-					fmt.Println("off")
-				} else {
-					fmt.Println("unknown")
-				}
-
-				return nil
-			},
-		},
-		{
-			Name:  "start",
-			Usage: "Turn on device",
-			Action: func(c *cli.Context) error {
-				addr := c.String("addr")
-				if addr == "" {
-					var err error
-					addr, err = discoverSerialDevice()
-					if err != nil {
-						return err
+					if status == ON {
+						fmt.Println("on")
+					} else if status == OFF {
+						fmt.Println("off")
+					} else {
+						fmt.Println("unknown")
 					}
-				}
 
-				status, err := checkPowerStatus(addr)
-				if err != nil {
-					return err
-				}
-
-				if status == ON {
-					fmt.Println("Device is already on...")
 					return nil
-				}
-
-				_, err = sendSerialCommand(addr, "powerbtn")
-				if err != nil {
-					return err
-				}
-
-				return nil
+				},
 			},
-		},
-		{
-			Name:  "shutdown",
-			Usage: "Turn off device",
-			Action: func(c *cli.Context) error {
-				addr := c.String("addr")
-				if addr == "" {
-					var err error
-					addr, err = discoverSerialDevice()
+			{
+				Name:  "start",
+				Usage: "Turn on device",
+				Action: func(c *cli.Context) error {
+					addr := c.String("addr")
+					verbose := c.Bool("verbose")
+
+					if !verbose {
+						log.SetOutput(io.Discard)
+					}
+
+					if addr == "" {
+						var err error
+						addr, err = discoverSerialDevice()
+						if err != nil {
+							return err
+						}
+					}
+
+					status, err := checkPowerStatus(addr)
 					if err != nil {
 						return err
 					}
-				}
 
-				status, err := checkPowerStatus(addr)
-				if err != nil {
-					return err
-				}
+					if status == ON {
+						fmt.Println("Device is already on...")
+						return nil
+					}
 
-				if status == OFF {
-					fmt.Println("Device is already off...")
+					_, err = sendSerialCommand(addr, "powerbtn")
+					if err != nil {
+						return err
+					}
+
 					return nil
-				}
+				},
+			},
+			{
+				Name:  "shutdown",
+				Usage: "Turn off device",
+				Action: func(c *cli.Context) error {
+					addr := c.String("addr")
+					if addr == "" {
+						var err error
+						addr, err = discoverSerialDevice()
+						if err != nil {
+							return err
+						}
+					}
 
-				_, err = sendSerialCommand(addr, "reboot")
-				if err != nil {
-					return err
-				}
+					status, err := checkPowerStatus(addr)
+					if err != nil {
+						return err
+					}
 
-				return nil
+					if status == OFF {
+						fmt.Println("Device is already off...")
+						return nil
+					}
+
+					_, err = sendSerialCommand(addr, "reboot")
+					if err != nil {
+						return err
+					}
+
+					return nil
+				},
 			},
 		},
 	}
