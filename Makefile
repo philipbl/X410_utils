@@ -7,8 +7,9 @@ EXECUTABLE := x410_utils
 
 all: build
 
-build:
-	@mkdir -p $(BUILD_DIR)
+build: $(BUILD_DIR)/$(EXECUTABLE)
+
+$(BUILD_DIR)/$(EXECUTABLE): main.go go.mod go.sum
 	$(GO) build -o $(BUILD_DIR)/$(EXECUTABLE) .
 
 install: build
