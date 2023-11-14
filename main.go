@@ -120,9 +120,6 @@ func sendSerialCommand(addr string, command string) (string, error) {
 }
 
 func main() {
-	// Turn off logging
-	// log.SetOutput(io.Discard)
-
 	app := &cli.App{
 		Name:  "x410_utils",
 		Usage: "CLI for controlling an USRP X410 device",
